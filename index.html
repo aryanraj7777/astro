@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Life Analyzer & Planner</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a polished look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Softer background */
+            min-height: 100vh;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 1.5rem; 
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease-in-out;
+        }
+        .palm-upload-area {
+            border: 2px dashed #9ca3af;
+            background-color: #f8fafc;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .palm-upload-area:hover {
+            background-color: #f1f5f9;
+        }
+        #resultContainer {
+            min-height: 200px;
+        }
+        .loader {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #8b5cf6; /* Tailwind violet-500 */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Style for the multi-section result headers */
+        .analysis-section-title {
+            background-color: #ede9fe;
+            color: #5b21b6;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #8b5cf6;
+        }
+        .wish-plan-container {
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .plan-status-complete {
+            background-color: #d1fae5; /* Green 100 */
+            color: #065f46; /* Green 800 */
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex justify-center items-center">
+
+    <div class="w-full max-w-5xl">
+        <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+            The Cosmic Life Analyzer & Planner
+        </h1>
+        <p class="text-center text-gray-500 mb-8">Uncover your potential and manifest your desires.</p>
+
+        <div class="card p-6 md:p-10">
+
+            <!-- TAB NAVIGATION -->
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="tabAnalyzer" onclick="showTab('analyzer')" class="px-4 py-2 text-lg font-medium border-b-2 border-violet-600 text-violet-600 transition-colors duration-300">
+                    Cosmic Analysis
+                </button>
+                <button id="tabPlanner" onclick="showTab('planner')" class="px-4 py-2 text-lg font-medium border-b-2 border-transparent text-gray-500 hover:text-violet-600 hover:border-violet-300 transition-colors duration-300">
+                    Manifestation Planner
+                </button>
+            </div>
+            
+            <div id="analyzerTab" class="tab-content">
+                <!-- INPUTS SECTION -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- 1. Palm Photo -->
+                    <div class="md:col-span-1">
+                        <label class="block text-lg font-medium text-gray-700 mb-3">1. Upload Palm Photo</label>
+                        <div id="uploadArea" class="palm-upload-area p-4 cursor-pointer rounded-xl" 
+                            onclick="document.getElementById('palmImageInput').click()"> 
+                            <input type="file" id="palmImageInput" accept="image/*" class="hidden">
+                            
+                            <img id="imagePreview" class="h-24 w-auto object-contain rounded-lg mb-2 hidden border border-gray-200" alt="Palm Preview">
+                            <p id="uploadPrompt" class="text-gray-500 text-sm">Click to select image.</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. Birth Details -->
+                    <div class="md:col-span-2 space-y-4">
+                        <div>
+                            <label for="birthDate" class="block text-lg font-medium text-gray-700 mb-2">2. Birth Date</label>
+                            <input type="date" id="birthDate" onchange="checkInputs()"
+                                class="w-full p-3 border border-gray-300 rounded-xl focus:ring-violet-500 focus:border-violet-500">
+                        </div>
+                        <div>
+                            <label for="birthLocation" class="block text-lg font-medium text-gray-700 mb-2">3. Birth Location (City, Country)</label>
+                            <input type="text" id="birthLocation" placeholder="e.g., London, UK or Delhi, India" oninput="checkInputs()"
+                                class="w-full p-3 border border-gray-300 rounded-xl focus:ring-violet-500 focus:border-violet-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYSIS BUTTON -->
+                <button id="analyzeButton" onclick="startAnalysis()" 
+                    class="w-full h-14 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xl rounded-xl shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-[1.005] disabled:opacity-50 disabled:cursor-not-allowed mb-8"
+                    disabled>
+                    Generate Full Cosmic Analysis
+                </button>
+
+
+                <!-- RESULT SECTION -->
+                <div class="mt-8 pt-6 border-t border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-700 mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Your Comprehensive Report
+                    </h2>
+                    <div id="resultContainer" class="bg-gray-50 p-6 rounded-xl text-gray-800 leading-relaxed transition-all duration-500">
+                        <p id="resultText">Please upload a photo of your palm and provide your birth details to unlock your cosmic reading.</p>
+                        <div id="loadingIndicator" class="hidden flex items-center justify-center space-x-3 mt-4">
+                            <div class="loader"></div>
+                            <span class="text-violet-600 font-medium">Synthesizing palmistry and planetary data...</span>
+                        </div>
+                        <div id="errorBox" class="hidden p-3 mt-4 bg-red-100 border border-red-400 text-red-700 rounded-lg"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANIFESTATION PLANNER TAB -->
+            <div id="plannerTab" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-700 mb-6 text-center">
+                    Manifest Your Wish
+                </h2>
+                
+                <!-- Local Storage Warning -->
+                <div class="mb-4 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg text-sm">
+                    ⚠️ **Local Storage Notice:** Your manifestation plans are saved only on *this* browser and device. They will be lost if you clear your browser data.
+                </div>
+                
+                <!-- New Plan Generation Area -->
+                <div class="bg-indigo-50 p-6 rounded-xl mb-8">
+                    <label for="userWish" class="block text-xl font-semibold text-indigo-700 mb-3">What is your current manifestation goal?</label>
+                    <textarea id="userWish" rows="2" placeholder="e.g., 'To secure a dream job in tech' or 'To deepen my romantic relationship'" 
+                              oninput="checkPlannerInputs()"
+                              class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-4"></textarea>
+                    
+                    <button id="generatePlanButton" onclick="generateManifestationPlan()" 
+                        class="w-full h-12 bg-indigo-600 text-white font-bold text-lg rounded-xl shadow-md hover:bg-indigo-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                        Generate Aligned Plan
+                    </button>
+                    
+                    <div id="planLoadingIndicator" class="hidden flex items-center justify-center space-x-3 mt-4">
+                        <div class="loader"></div>
+                        <span class="text-indigo-600 font-medium">Consulting the cosmos for the perfect alignment...</span>
+                    </div>
+
+                    <div id="generatedPlanOutput" class="hidden mt-4 p-4 bg-white rounded-lg border border-indigo-200">
+                        <h3 class="text-lg font-bold text-indigo-700 mb-2">✨ Generated Plan</h3>
+                        <div id="planDetails"></div>
+                        <button id="savePlanButton" onclick="saveGoal()" class="mt-4 w-full h-10 bg-emerald-500 text-white font-bold text-md rounded-lg hover:bg-emerald-600 transition duration-300">
+                            ✅ Save Plan & Start Tracking
+                        </button>
+                    </div>
+                    <div id="planErrorBox" class="hidden p-3 mt-4 bg-red-100 border border-red-400 text-red-700 rounded-lg"></div>
+                </div>
+
+                <!-- Existing Plans Tracker -->
+                <h3 class="text-2xl font-bold text-gray-700 mb-4">Your Manifestation Journey</h3>
+                <div id="manifestationGoalsList" class="space-y-4">
+                    <!-- Goals are rendered here by JavaScript -->
+                    <p class="text-gray-500 text-center py-4">No active goals yet. Generate and save a plan above!</p>
+                </div>
+            </div>
+
+            <!-- DISCLAIMER -->
+            <p class="mt-8 text-sm text-center text-gray-400">
+                Disclaimer: This reading is for entertainment, reflection, and inspiration purposes only. It is not a substitute for professional or medical advice.
+            </p>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+        // API Key provided by the user
+        const apiKey = "AIzaSyDMezBD6e6UX4akgwXkoOfw9J3IJbS1534"; 
+        
+        // --- Global UI Elements ---
+        const imageInput = document.getElementById('palmImageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const resultText = document.getElementById('resultText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorBox = document.getElementById('errorBox');
+        const birthDateInput = document.getElementById('birthDate');
+        const birthLocationInput = document.getElementById('birthLocation');
+
+        // Planner UI Elements
+        const userWishInput = document.getElementById('userWish');
+        const generatePlanButton = document.getElementById('generatePlanButton');
+        const planLoadingIndicator = document.getElementById('planLoadingIndicator');
+        const planErrorBox = document.getElementById('planErrorBox');
+        const generatedPlanOutput = document.getElementById('generatedPlanOutput');
+        const planDetails = document.getElementById('planDetails');
+        const manifestationGoalsList = document.getElementById('manifestationGoalsList');
+
+        let base64Image = null;
+        let currentGeneratedPlan = null; // State for the currently generated plan (before saving)
+        const LOCAL_STORAGE_KEY = 'cosmicManifestationGoals';
+
+        // --- Utility Functions ---
+
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
+        // Helper function to convert File object to Base64 string
+        const toBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]); 
+            reader.onerror = error => reject(error);
+        });
+
+        // --- TAB & VIEW LOGIC ---
+
+        function showTab(tabName) {
+            document.getElementById('analyzerTab').classList.add('hidden');
+            document.getElementById('plannerTab').classList.add('hidden');
+            
+            document.getElementById('tabAnalyzer').classList.remove('border-violet-600', 'text-violet-600');
+            document.getElementById('tabPlanner').classList.remove('border-violet-600', 'text-violet-600');
+            document.getElementById('tabAnalyzer').classList.add('border-transparent', 'text-gray-500');
+            document.getElementById('tabPlanner').classList.add('border-transparent', 'text-gray-500');
+
+            document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+            document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('border-violet-600', 'text-violet-600');
+            document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('border-transparent', 'text-gray-500');
+
+            if (tabName === 'planner') {
+                renderGoals(); // Refresh goals every time the planner tab is opened
+            }
+        }
+        
+        // --- ANALYZER TAB LOGIC ---
+
+        // Checks if all required inputs (image, date, location) are present
+        function checkInputs() {
+            const dateFilled = !!birthDateInput.value;
+            const locationFilled = birthLocationInput.value.trim().length > 3;
+            const imageUploaded = !!base64Image;
+
+            analyzeButton.disabled = !(dateFilled && locationFilled && imageUploaded);
+            analyzeButton.textContent = analyzeButton.disabled ? "Fill all details to analyze" : "Generate Full Cosmic Analysis";
+        }
+
+        // Event handler for image upload preview
+        async function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                try {
+                    const url = URL.createObjectURL(file);
+                    imagePreview.src = url;
+                    imagePreview.classList.remove('hidden');
+                    uploadPrompt.textContent = "Image ready.";
+
+                    base64Image = await toBase64(file);
+                    checkInputs(); 
+
+                } catch (error) {
+                    console.error("Error processing file:", error);
+                    showError("Could not process image file.");
+                    base64Image = null;
+                    checkInputs();
+                }
+            } else {
+                imagePreview.classList.add('hidden');
+                uploadPrompt.textContent = "Click to select image.";
+                base64Image = null;
+                checkInputs();
+            }
+        }
+        imageInput.addEventListener('change', previewImage);
+        
+        function showLoading(isLoading, elementId = 'loadingIndicator') {
+            const indicator = document.getElementById(elementId);
+            const isAnalyzer = (elementId === 'loadingIndicator');
+
+            if (isAnalyzer) {
+                analyzeButton.disabled = isLoading;
+                resultText.classList.toggle('hidden', isLoading);
+                analyzeButton.textContent = isLoading ? "Synthesizing..." : "Generate Full Cosmic Analysis";
+                if (isLoading) resultText.innerHTML = "";
+            } else { // Planner loading
+                generatePlanButton.disabled = isLoading;
+                generatedPlanOutput.classList.add('hidden');
+                generatePlanButton.textContent = isLoading ? "Consulting..." : "Generate Aligned Plan";
+            }
+            indicator.classList.toggle('hidden', !isLoading);
+        }
+
+        function showError(message, elementId = 'errorBox') {
+            const errorElement = document.getElementById(elementId);
+            const resultElement = (elementId === 'errorBox') ? resultText : planDetails;
+            
+            errorElement.textContent = `Error: ${message}.`;
+            errorElement.classList.remove('hidden');
+            resultElement.classList.add('hidden');
+        }
+        
+        // --- GEMINI API CORE LOGIC (shared by both tabs) ---
+
+        async function callGeminiApi(prompt, isImageAnalysis, base64Data = null, elementId = 'loadingIndicator') {
+            const apiUrl = `${API_URL_BASE}?key=${apiKey}`;
+            const isAnalyzer = isImageAnalysis;
+
+            let systemPrompt;
+            if (isAnalyzer) {
+                 systemPrompt = `You are the Cosmic Life Analyzer, a unique synthesis expert combining traditional chiromancy (palm reading) with astrology (planetary transits). Your task is to generate a single, comprehensive report structured into three distinct, detailed sections based on the image and data. Instructions: 1. Use the exact markdown headers for each section: # 🔮 PALMISTRY: The Blueprint of Self, # 🪐 PLANETARY INFLUENCES: Current Cosmic Tides, # 📰 LIFE PATH NEWS: Future Headlines & Advice. 2. Write in an encouraging, futuristic, and mystical tone. 3. Do NOT mention "AI," "algorithm", or "machine learning".`;
+            } else { // Manifestation Planner
+                 systemPrompt = `You are an expert Astrological Manifestation Coach. Your task is to take a user's goal and generate a specific, actionable, and cosmically aligned plan. Your output MUST be in a strict JSON format with the following schema to ensure proper parsing: { "goal": "User's goal (reiterated)", "actions": ["Action 1", "Action 2", "Action 3"], "dates": "Specific best dates/times based on transits (e.g., New Moon in Taurus on May 8th or Mercury direct on August 28th). Explain the significance.", "ritual": "A short, actionable ritual or affirmation for cosmic alignment (e.g., Candle lighting ceremony during the new moon). Max 3 sentences." }. DO NOT include any text outside the JSON object.`;
+            }
+            
+            const contents = [{ role: "user", parts: [{ text: prompt }] }];
+            if (base64Data) {
+                contents[0].parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
+            }
+
+            const payload = {
+                contents: contents,
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            // If it's the planner, we want JSON output
+            if (!isAnalyzer) {
+                payload.generationConfig = {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "goal": { "type": "STRING" },
+                            "actions": { "type": "ARRAY", "items": { "type": "STRING" } },
+                            "dates": { "type": "STRING" },
+                            "ritual": { "type": "STRING" }
+                        },
+                        required: ["goal", "actions", "dates", "ritual"]
+                    }
+                };
+            }
+            
+            showLoading(true, elementId);
+
+            // Exponential backoff retry logic
+            const MAX_RETRIES = 5;
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        showLoading(false, elementId);
+                        if (!isAnalyzer) {
+                            return JSON.parse(text); // Return parsed JSON for planner
+                        }
+                        return text; // Return raw text for analyzer
+                    } else {
+                        throw new Error("Empty or invalid response from the AI model.");
+                    }
+                } catch (error) {
+                    showLoading(false, elementId);
+                    console.error(`Attempt ${i + 1} failed:`, error.message);
+                    if (i === MAX_RETRIES - 1) {
+                        throw new Error("Failed to connect to the analysis service after multiple retries. Check console for details.");
+                    }
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        // Function to start the full analysis process
+        async function startAnalysis() {
+            const birthDate = birthDateInput.value;
+            const birthLocation = birthLocationInput.value.trim();
+
+            if (!base64Image || !birthDate || !birthLocation) {
+                showError("Missing required inputs (Image, Date, or Location).");
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+            resultText.innerHTML = ""; 
+
+            const userPrompt = `Generate the Cosmic Life Analyzer report.
+Palm Image Analysis: Interpret Heart, Head, Life, and Fate lines, and key mounts.
+Planetary Influence Data: Birth Date: ${birthDate}, Location: ${birthLocation}. Analyze the current key transits affecting a person born on this date at this location.
+Future Path: Based on the combined palmistry and planetary data, generate 3-5 unique "Life Path News" headlines focusing on career, relationships, and self-improvement, with a short paragraph of commentary for each.`;
+
+            try {
+                const reading = await callGeminiApi(userPrompt, true, base64Image, 'loadingIndicator');
+                
+                // Format the output by replacing markdown headers with styled HTML elements
+                let formattedReading = reading
+                    .replace(/# 🔮 PALMISTRY: (.*?)\n/g, '<div class="analysis-section-title">🔮 PALMISTRY: $1</div>')
+                    .replace(/# 🪐 PLANETARY INFLUENCES: (.*?)\n/g, '<div class="analysis-section-title">🪐 PLANETARY INFLUENCES: $1</div>')
+                    .replace(/# 📰 LIFE PATH NEWS: (.*?)\n/g, '<div class="analysis-section-title">📰 LIFE PATH NEWS: $1</div>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Keep bolding
+
+                resultText.innerHTML = formattedReading;
+                resultText.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Analysis failed:", error);
+                showError(error.message);
+            } finally {
+                checkInputs(); // Re-enable if successful
+            }
+        }
+
+        // --- MANIFESTATION PLANNER LOGIC (using localStorage) ---
+        
+        function checkPlannerInputs() {
+            generatePlanButton.disabled = userWishInput.value.trim().length < 5;
+            planErrorBox.classList.add('hidden');
+        }
+
+        async function generateManifestationPlan() {
+            const wish = userWishInput.value.trim();
+            if (wish.length < 5) {
+                showError("Please enter a detailed wish (min 5 characters).", 'planErrorBox');
+                return;
+            }
+
+            planErrorBox.classList.add('hidden');
+            generatedPlanOutput.classList.add('hidden');
+            planDetails.innerHTML = '';
+            
+            const prompt = `Generate an AI-Powered Wish Manifestation Plan for the user's goal: "${wish}". Base the plan on current astrological transits (assume today's date) and provide highly specific, actionable advice.`;
+
+            try {
+                const plan = await callGeminiApi(prompt, false, null, 'planLoadingIndicator');
+                
+                currentGeneratedPlan = { 
+                    id: generateUniqueId(), // Assign temporary ID
+                    goal: plan.goal, 
+                    actions: plan.actions, 
+                    dates: plan.dates, 
+                    ritual: plan.ritual,
+                    status: 'Active',
+                    createdAt: new Date().toISOString(),
+                };
+
+                planDetails.innerHTML = `
+                    <p class="text-sm font-semibold text-gray-600 mb-3">Goal: ${plan.goal}</p>
+                    <p class="mb-2"><strong class="text-indigo-600">✨ Actions:</strong></p>
+                    <ul class="list-disc list-inside ml-4 text-sm space-y-1">
+                        ${plan.actions.map(a => `<li>${a}</li>`).join('')}
+                    </ul>
+                    <p class="mt-3"><strong class="text-indigo-600">📅 Best Time Alignment:</strong> ${plan.dates}</p>
+                    <p class="mt-3"><strong class="text-indigo-600">🧿 Ritual/Affirmation:</strong> ${plan.ritual}</p>
+                `;
+                generatedPlanOutput.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Plan generation failed:", error);
+                showError("Could not generate plan. Please try a different goal or try again later.", 'planErrorBox');
+            }
+        }
+        
+        function getGoalsFromLocalStorage() {
+            try {
+                const goals = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return goals ? JSON.parse(goals) : [];
+            } catch (e) {
+                console.error("Error reading from local storage:", e);
+                return [];
+            }
+        }
+
+        function saveGoalsToLocalStorage(goals) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(goals));
+            } catch (e) {
+                console.error("Error writing to local storage:", e);
+                // Optionally show an error to the user
+            }
+        }
+
+        function renderGoals() {
+            const goals = getGoalsFromLocalStorage();
+            manifestationGoalsList.innerHTML = ''; 
+
+            if (goals.length === 0) {
+                manifestationGoalsList.innerHTML = '<p class="text-gray-500 text-center py-4">No active goals yet. Generate and save a plan above!</p>';
+                return;
+            }
+
+            goals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by newest first
+
+            goals.forEach(goal => {
+                const isComplete = goal.status === 'Complete';
+                const statusColor = isComplete ? 'bg-emerald-100 text-emerald-800 border-emerald-500' : 'bg-yellow-100 text-yellow-800 border-yellow-500';
+                const buttonText = isComplete ? 'Mark Active' : 'Mark Complete';
+                const containerClass = isComplete ? 'plan-status-complete' : 'bg-white';
+                const buttonClass = isComplete ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-500 hover:bg-emerald-600';
+
+                const goalHtml = `
+                    <div class="wish-plan-container ${containerClass} border-l-4 p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="text-xl font-bold text-gray-800">${goal.goal}</h4>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                                ${goal.status}
+                            </span>
+                        </div>
+                        <div class="text-sm space-y-1">
+                            <p class="mt-2 text-sm"><strong class="text-indigo-600">📅 Alignment:</strong> ${goal.dates}</p>
+                            <p class="mt-2 text-sm"><strong class="text-indigo-600">🧿 Ritual:</strong> ${goal.ritual}</p>
+                            <details class="mt-3">
+                                <summary class="font-semibold text-sm text-gray-600 cursor-pointer">View Actions</summary>
+                                <ul class="list-disc list-inside ml-4 mt-2 text-gray-700">
+                                    ${goal.actions.map(a => `<li>${a}</li>`).join('')}
+                                </ul>
+                            </details>
+                        </div>
+                        <button onclick="toggleGoalStatus('${goal.id}', '${goal.status}')" 
+                            class="mt-4 px-4 py-2 text-sm font-semibold rounded-lg text-white ${buttonClass} transition duration-300">
+                            ${buttonText}
+                        </button>
+                    </div>
+                `;
+                manifestationGoalsList.innerHTML += goalHtml;
+            });
+        }
+        
+        window.saveGoal = function() {
+            if (!currentGeneratedPlan) {
+                showError("Plan not generated.", 'planErrorBox');
+                return;
+            }
+
+            const goals = getGoalsFromLocalStorage();
+            goals.push(currentGeneratedPlan);
+            saveGoalsToLocalStorage(goals);
+
+            // Clear state and UI after saving
+            currentGeneratedPlan = null;
+            userWishInput.value = '';
+            generatedPlanOutput.classList.add('hidden');
+            renderGoals(); // Refresh the displayed list
+        }
+
+        window.toggleGoalStatus = function(goalId, currentStatus) {
+            const goals = getGoalsFromLocalStorage();
+            const goalIndex = goals.findIndex(g => g.id === goalId);
+            
+            if (goalIndex !== -1) {
+                const newStatus = currentStatus === 'Active' ? 'Complete' : 'Active';
+                goals[goalIndex].status = newStatus;
+                goals[goalIndex].completedAt = newStatus === 'Complete' ? new Date().toISOString() : null;
+                saveGoalsToLocalStorage(goals);
+                renderGoals(); // Refresh the displayed list
+            }
+        }
+
+        // --- INITIALIZATION ---
+        
+        // Load goals and check inputs on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkInputs();
+            checkPlannerInputs();
+            renderGoals();
+        });
+        
+        // Make functions globally accessible for inline HTML calls
+        window.checkInputs = checkInputs;
+        window.previewImage = previewImage;
+        window.startAnalysis = startAnalysis;
+        window.showTab = showTab;
+        window.checkPlannerInputs = checkPlannerInputs;
+        window.generateManifestationPlan = generateManifestationPlan;
+    </script>
+</body>
+</html>
